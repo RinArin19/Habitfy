@@ -26,7 +26,7 @@ A premium, highly interactive full-stack habit tracking application built with m
 
 **Backend**
 - Node.js & Express
-- SQLite (Local disk Persistence)
+- Postgresql
 - JSON Web Tokens (JWT) & bcrypt (Authentication)
 - `@google/genai` SDK (Gemini AI Integration)
 
