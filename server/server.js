@@ -44,37 +44,39 @@ const verifyAdmin = (req, res, next) => {
 };
 
 // Mock admin route for testings, protected
-app.get('/api/admin/stats', verifyAdmin, (req, res) => {
-    db.get('SELECT COUNT(*) as users FROM users', (err, userRow) => {
-        if (err) return res.status(500).json({ error: 'DB Error' });
-        db.get('SELECT COUNT(*) as activeHabits, SUM(completedToday) as completedToday FROM habits', (err, habitRow) => {
-            if (err) return res.status(500).json({ error: 'DB Error' });
-            res.json({ 
-                users: userRow ? userRow.users : 0, 
-                activeHabits: habitRow ? habitRow.activeHabits : 0, 
-                completedToday: habitRow ? habitRow.completedToday : 0 
-            });
+app.get('/api/admin/stats', verifyAdmin, async (req, res) => {
+    try {
+        const userRes = await db.query('SELECT COUNT(*) as users FROM users');
+        const habitRes = await db.query('SELECT COUNT(*) as "activeHabits", SUM(CASE WHEN "completedToday" = true THEN 1 ELSE 0 END) as "completedToday" FROM habits');
+        
+        const userRow = userRes.rows[0];
+        const habitRow = habitRes.rows[0];
+        
+        res.json({ 
+            users: userRow ? parseInt(userRow.users) : 0, 
+            activeHabits: habitRow ? parseInt(habitRow.activeHabits) : 0, 
+            completedToday: habitRow ? parseInt(habitRow.completedToday || 0) : 0 
         });
-    });
+    } catch (err) { res.status(500).json({ error: 'DB Error' }); }
 });
 
-app.get('/api/admin/users', verifyAdmin, (req, res) => {
-    db.all(`
-        SELECT u.id, u.username, 
-               COUNT(h.id) as totalHabits, 
-               SUM(CASE WHEN h.completedToday = 1 THEN 1 ELSE 0 END) as completedToday 
-        FROM users u 
-        LEFT JOIN habits h ON u.id = h.userId 
-        GROUP BY u.id
-    `, [], (err, rows) => {
-        if (err) return res.status(500).json({ error: 'Failed to fetch users' });
+app.get('/api/admin/users', verifyAdmin, async (req, res) => {
+    try {
+        const { rows } = await db.query(`
+            SELECT u.id, u.username, 
+                   COUNT(h.id) as "totalHabits", 
+                   SUM(CASE WHEN h."completedToday" = true THEN 1 ELSE 0 END) as "completedToday" 
+            FROM users u 
+            LEFT JOIN habits h ON u.id = h."userId" 
+            GROUP BY u.id
+        `);
         const formatted = rows.map(r => ({
             ...r,
-            totalHabits: r.totalHabits || 0,
-            completedToday: r.completedToday || 0
+            totalHabits: parseInt(r.totalHabits) || 0,
+            completedToday: parseInt(r.completedToday) || 0
         }));
         res.json(formatted);
-    });
+    } catch (err) { res.status(500).json({ error: 'Failed to fetch users' }); }
 });
 
 app.post('/api/admin/users', verifyAdmin, async (req, res) => {
@@ -82,15 +84,11 @@ app.post('/api/admin/users', verifyAdmin, async (req, res) => {
     if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        db.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword], function(err) {
-            if (err) {
-                if (err.message.includes('UNIQUE')) return res.status(409).json({ error: 'Username already exists' });
-                return res.status(500).json({ error: 'Failed to create user' });
-            }
-            res.status(201).json({ id: this.lastID, username, totalHabits: 0, completedToday: 0 });
-        });
+        const { rows } = await db.query('INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id', [username, hashedPassword]);
+        res.status(201).json({ id: rows[0].id, username, totalHabits: 0, completedToday: 0 });
     } catch (err) {
-        res.status(500).json({ error: 'Server error' });
+        if (err.code === '23505' || (err.message && err.message.includes('UNIQUE'))) return res.status(409).json({ error: 'Username already exists' });
+        res.status(500).json({ error: 'Failed to create user' });
     }
 });
 
@@ -102,27 +100,22 @@ app.put('/api/admin/users/:id', verifyAdmin, async (req, res) => {
     try {
         if (password) {
             const hashedPassword = await bcrypt.hash(password, 10);
-            db.run('UPDATE users SET username = ?, password = ? WHERE id = ?', [username, hashedPassword, id], function(err) {
-                if (err) return res.status(500).json({ error: 'Failed to update user' });
-                res.json({ message: 'User updated successfully' });
-            });
+            await db.query('UPDATE users SET username = $1, password = $2 WHERE id = $3', [username, hashedPassword, id]);
         } else {
-            db.run('UPDATE users SET username = ? WHERE id = ?', [username, id], function(err) {
-                if (err) return res.status(500).json({ error: 'Failed to update user' });
-                res.json({ message: 'User updated successfully' });
-            });
+            await db.query('UPDATE users SET username = $1 WHERE id = $2', [username, id]);
         }
+        res.json({ message: 'User updated successfully' });
     } catch (err) {
         res.status(500).json({ error: 'Server error' });
     }
 });
 
-app.delete('/api/admin/users/:id', verifyAdmin, (req, res) => {
-    db.run('DELETE FROM users WHERE id = ?', [req.params.id], function(err) {
-        if (err) return res.status(500).json({ error: 'Failed to delete user' });
-        if (this.changes === 0) return res.status(404).json({ error: 'User not found' });
+app.delete('/api/admin/users/:id', verifyAdmin, async (req, res) => {
+    try {
+        const { rowCount } = await db.query('DELETE FROM users WHERE id = $1', [req.params.id]);
+        if (rowCount === 0) return res.status(404).json({ error: 'User not found' });
         res.json({ message: 'User deleted successfully' });
-    });
+    } catch (err) { res.status(500).json({ error: 'Failed to delete user' }); }
 });
 
 // Chatbot route using Gemini API

@@ -3,7 +3,8 @@ import { Users, Activity, CheckSquare, LogOut, Trash2, Edit2, Plus, BarChart2, P
 import { PieChart, Pie, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import AdminLogin from './AdminLogin';
 
-const API_URL = 'http://localhost:5000/api/admin/stats';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = `${API_BASE}/api/admin/stats`;
 
 function AdminDashboard() {
   const [stats, setStats] = useState({ users: 0, activeHabits: 0, completedToday: 0 });
@@ -39,7 +40,7 @@ function AdminDashboard() {
       setStats(data);
       
       // Fetch users list
-      const usersRes = await fetch('http://localhost:5000/api/admin/users', {
+      const usersRes = await fetch(`${API_BASE}/api/admin/users`, {
          headers: { 'Authorization': `Bearer ${token}` }
       });
       if (usersRes.ok) {
@@ -56,7 +57,7 @@ function AdminDashboard() {
   const handleDeleteUser = async (id) => {
     if (!window.confirm("Are you sure you want to delete this user?")) return;
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${id}`, {
+      const res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -79,7 +80,7 @@ function AdminDashboard() {
   const handleCreateUser = async (e) => {
     e.preventDefault();
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users`, {
+      const res = await fetch(`${API_BASE}/api/admin/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(newUser)
@@ -95,7 +96,7 @@ function AdminDashboard() {
 
   const submitEditUser = async (id) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/admin/users/${id}`, {
+      const res = await fetch(`${API_BASE}/api/admin/users/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(editForm)

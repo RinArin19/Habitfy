@@ -16,7 +16,8 @@ function UserLogin({ onLoginSuccess }) {
     const endpoint = isLogin ? '/api/users/login' : '/api/users/register';
     
     try {
-      const res = await fetch(`http://localhost:5000${endpoint}`, {
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await fetch(`${API_URL}${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })

@@ -1,33 +1,44 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { Pool } = require('pg');
 
-const dbPath = path.resolve(__dirname, 'database.sqlite');
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Error opening database', err.message);
-    } else {
-        console.log('Connected to the SQLite database.');
-        
-        // Create users table
-        db.run(`CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE,
-            password TEXT
-        )`);
-
-        // Create habits table
-        db.run(`CREATE TABLE IF NOT EXISTS habits (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            userId INTEGER,
-            title TEXT,
-            streak INTEGER DEFAULT 0,
-            completedToday BOOLEAN DEFAULT 0,
-            FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
-        )`);
-    }
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// Enable foreign keys
-db.run('PRAGMA foreign_keys = ON');
+pool.on('error', (err) => {
+    console.error('Unexpected error on idle pg client', err);
+});
 
-module.exports = db;
+async function initDB() {
+    if (!process.env.DATABASE_URL) {
+        console.log("No DATABASE_URL found. Skipping PostgreSQL initialization.");
+        return;
+    }
+
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS users (
+                id SERIAL PRIMARY KEY,
+                username VARCHAR(255) UNIQUE NOT NULL,
+                password VARCHAR(255) NOT NULL
+            )
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS habits (
+                id SERIAL PRIMARY KEY,
+                "userId" INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                title VARCHAR(255) NOT NULL,
+                streak INTEGER DEFAULT 0,
+                "completedToday" BOOLEAN DEFAULT false
+            )
+        `);
+        console.log('Connected to PostgreSQL and tables verified.');
+    } catch (err) {
+        console.error('Failed to initialize PostgreSQL tables:', err.message);
+    }
+}
+
+initDB();
+
+module.exports = pool;

@@ -10,37 +10,38 @@ exports.register = async (req, res) => {
 
     try {
         const hashedPassword = await bcrypt.hash(password, 10);
-        db.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword], function(err) {
-            if (err) {
-                if (err.message.includes('UNIQUE')) {
-                    return res.status(409).json({ error: 'Username already exists' });
-                }
-                return res.status(500).json({ error: 'Failed to create user' });
-            }
-            
-            // Generate token after successful registration
-            const token = jwt.sign({ id: this.lastID, username, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
-            res.status(201).json({ token, user: { id: this.lastID, username } });
-        });
+        const { rows } = await db.query('INSERT INTO users (username, password) VALUES ($1, $2) RETURNING id', [username, hashedPassword]);
+        const newUserId = rows[0].id;
+        
+        const token = jwt.sign({ id: newUserId, username, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
+        res.status(201).json({ token, user: { id: newUserId, username } });
     } catch (err) {
+        if (err.code === '23505' || (err.message && err.message.includes('UNIQUE'))) {
+            return res.status(409).json({ error: 'Username already exists' });
+        }
+        console.error(err);
         res.status(500).json({ error: 'Server error' });
     }
 };
 
-exports.login = (req, res) => {
+exports.login = async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
 
-    db.get('SELECT * FROM users WHERE username = ?', [username], async (err, row) => {
-        if (err) return res.status(500).json({ error: 'Database error' });
-        if (!row) return res.status(401).json({ error: 'Invalid username or password' });
-
+    try {
+        const { rows } = await db.query('SELECT * FROM users WHERE username = $1', [username]);
+        if (rows.length === 0) return res.status(401).json({ error: 'Invalid username or password' });
+        
+        const row = rows[0];
         const match = await bcrypt.compare(password, row.password);
         if (!match) return res.status(401).json({ error: 'Invalid username or password' });
 
         const token = jwt.sign({ id: row.id, username: row.username, role: 'user' }, JWT_SECRET, { expiresIn: '7d' });
         res.json({ token, user: { id: row.id, username: row.username } });
-    });
+    } catch(err) {
+        console.error(err);
+        res.status(500).json({ error: 'Database error' });
+    }
 };
 
 exports.verifyUser = (req, res, next) => {
