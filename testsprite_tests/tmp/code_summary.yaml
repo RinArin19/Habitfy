@@ -1,0 +1,27 @@
+tech_stack:
+  frontend:
+    framework: React
+    bundler: Vite
+    styling: CSS (Glassmorphism design)
+    libraries:
+      - lucide-react
+      - recharts
+      - canvas-confetti
+      - react-router-dom
+  backend:
+    framework: Express.js
+    runtime: Node.js
+    database: PostgreSQL (Supabase) / SQLite
+    auth: JWT & bcrypt
+    ai: Google Gemini AI (@google/genai)
+    notifications: Web-Push
+features:
+  - user_authentication: Sign up, login, private dashboard.
+  - habit_tracking: CRUD operations on habits, streak tracking, daily completion.
+  - statistics: Visual progress tracking with charts.
+  - admin_panel: User management and overall app stats for admins.
+  - ai_chatbot: "Karina" AI coach/friend via Gemini API.
+  - push_notifications: Reminders and alerts.
+project_structure:
+  - client: Frontend source code.
+  - server: Backend API and database logic.

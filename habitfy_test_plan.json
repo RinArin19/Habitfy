@@ -1,0 +1,120 @@
+{
+  "project": "HabitiFy",
+  "version": "1.0.0",
+  "test_suites": [
+    {
+      "name": "Authentication",
+      "description": "Verify user and admin login/register flows.",
+      "tests": [
+        {
+          "id": "AUTH-001",
+          "name": "User Registration",
+          "action": "Register a new user with 'testuser' / 'TestPass123'",
+          "expected_result": "User created and redirected to login/dashboard.",
+          "priority": "High"
+        },
+        {
+          "id": "AUTH-002",
+          "name": "User Login",
+          "action": "Log in with registered credentials.",
+          "expected_result": "JWT token stored in localStorage and redirected to Dashboard.",
+          "priority": "High"
+        },
+        {
+          "id": "AUTH-003",
+          "name": "Admin Login",
+          "action": "Log in to /admin with 'admin' / 'Admin@2026'",
+          "expected_result": "Admin dashboard visible with statistical data.",
+          "priority": "High"
+        }
+      ]
+    },
+    {
+      "name": "Habit Management",
+      "description": "Functional tests for core habit features.",
+      "tests": [
+        {
+          "id": "HAB-001",
+          "name": "Create Habit",
+          "action": "Add a new habit named 'Read 30 mins'.",
+          "expected_result": "Habit appears in the list on the dashboard.",
+          "priority": "High"
+        },
+        {
+          "id": "HAB-002",
+          "name": "Toggle Habit Completion",
+          "action": "Click the completion checkmark for 'Read 30 mins'.",
+          "expected_result": "Habit status updates to completed, confetti animation triggers.",
+          "priority": "Medium"
+        },
+        {
+          "id": "HAB-003",
+          "name": "Delete Habit",
+          "action": "Remove the 'Read 30 mins' habit.",
+          "expected_result": "Habit is removed from the dashboard and database.",
+          "priority": "Medium"
+        }
+      ]
+    },
+    {
+      "name": "Admin Operations",
+      "description": "Verify admin-only features and user management.",
+      "tests": [
+        {
+          "id": "ADM-001",
+          "name": "View Global Stats",
+          "action": "Check if statistics charts load on Admin Dashboard.",
+          "expected_result": "Stats charts (Recharts) render with non-zero data (if users exist).",
+          "priority": "Medium"
+        },
+        {
+          "id": "ADM-002",
+          "name": "Manage Users",
+          "action": "Create, Edit, and Delete a test user from the admin user list.",
+          "expected_result": "Administrative CRUD operations reflected in database.",
+          "priority": "High"
+        }
+      ]
+    },
+    {
+      "name": "AI Integrations",
+      "description": "Test the Gemini-powered 'Karina' chatbot.",
+      "tests": [
+        {
+          "id": "AIC-001",
+          "name": "Chat Connectivity",
+          "action": "Send 'Hello' to Karina the AI coach.",
+          "expected_result": "Received a non-empty string response from the backend.",
+          "priority": "Medium"
+        },
+        {
+          "id": "AIC-002",
+          "name": "Chat Context",
+          "action": "Ask 'How can I build better habits?'",
+          "expected_result": "Response should be relevant and maintain the 'Karina' persona.",
+          "priority": "Low"
+        }
+      ]
+    },
+    {
+      "name": "Performance & UI",
+      "description": "Visual and responsive tests.",
+      "tests": [
+        {
+          "id": "UI-001",
+          "name": "Glassmorphism Rendering",
+          "action": "Inspect the dashboard background and card styles.",
+          "expected_result": "Correct semi-transparent effects and blur applied via CSS.",
+          "priority": "Low"
+        },
+        {
+          "id": "UI-002",
+          "name": "Responsive Layout",
+          "action": "Check dashboard on mobile screen width (e.g., 375px).",
+          "expected_result": "Layout adapts without horizontal scrolling or overlapping elements.",
+          "priority": "High"
+        }
+      ]
+    }
+  ]
+}
